@@ -1,24 +1,48 @@
-import { signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "./fireBase";
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
+import { addUser, removeUser } from "../utils/userSlice";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
 
 const Header = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((store) => store.user);
   console.log(user);
 
   function handleSignOut() {
     signOut(auth)
-      .then(() => {
-        // Sign-out successful.
-        navigate("/");
-      })
+      .then(() => {})
       .catch((error) => {
         // An error happened.
         navigate("/error");
       });
   }
+
+  useEffect(() => {
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // User is signed in, see docs for a list of available properties
+        const { uid, email, displayName, photoURL } = user;
+        dispatch(
+          addUser({
+            uid: uid,
+            email: email,
+            displayName: displayName,
+            photoURL: photoURL,
+          })
+        );
+        navigate("/browse");
+        // if user will login the user go to Browse Page
+      } else {
+        // User is signed out
+        dispatch(removeUser());
+        navigate("/");
+        // if user will loginOot the user go to login Page
+      }
+    });
+  }, []);
 
   return (
     <>
@@ -29,8 +53,12 @@ const Header = () => {
           alt=""
         />
         <div className="flex">
-          <img className="w-12 h-12 p-2" src={user.photoURL} alt="userIcon" />
-          <p>{user.displayName}</p>
+          <img
+            className="w-12 h-12 p-2"
+            src={user === null ? "" : user.photoURL}
+            alt="userIcon"
+          />
+
           <button className="font-bold text-white" onClick={handleSignOut}>
             (Sign Out)
           </button>
